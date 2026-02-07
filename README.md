@@ -8,6 +8,19 @@ A [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that c
 - **SAP NW RFC SDK** installed at `/usr/local/sap/nwrfcsdk/` (headers in `include/`, libraries in `lib/`)
 - A valid `sapnwrfc.ini` configuration file in the working directory with SAP connection destinations
 
+### SAP NetWeaver RFC SDK Proprietary Notice
+The **SAP NetWeaver RFC SDK** is proprietary software owned by SAP SE. It is **not open-source** and is subject to specific licensing terms.
+
+#### Licensing & Access
+* **No Redistribution:** You are not permitted to redistribute the SDK binaries (`.dll`, `.so`, `.dylib`) in your own applications or repositories.
+* **Customer Access:** Access requires a valid SAP license and an **S-User ID** for the SAP Support Portal.
+* **Legal Source:** Binaries must only be downloaded from the official SAP Software Download Center.
+
+#### Official Resources
+* **Product Page:** [SAP Support Portal - Connectors](https://support.sap.com/en/product/connectors/nwrfcsdk.html)
+* **Master Note:** [SAP Note 2573790](https://launchpad.support.sap.com/#/notes/2573790) (Installation and Availability for version 7.50).
+* **Technical Guide:** Detailed programming guides are provided within the `doc` folder of the downloaded SDK package.
+
 ## Build
 
 ```bash
@@ -25,20 +38,20 @@ CGO_LDFLAGS="-L/usr/local/sap/nwrfcsdk/lib"
 
 ### Cross-compiling for Windows
 
-The `build-windows` target cross-compiles for Windows x86_64 using MinGW. It requires:
+The `build-windows` target cross-compiles for Windows x86_64 using MinGW.
+It requires a Windows build of the SAP NW RFC SDK with headers and libraries available at the configured SDK path and the MinGW-w64 cross-compiler (`x86_64-w64-mingw32-gcc`).
 
-- **MinGW-w64 cross-compiler** (`x86_64-w64-mingw32-gcc`). Install on Debian/Ubuntu:
+Install on Debian/Ubuntu:
   ```bash
   sudo apt install gcc-mingw-w64-x86-64
   ```
-- **Windows build of the SAP NW RFC SDK** with headers and libraries available at the configured SDK path
 
 ## Configuration
 
 The server reads SAP connection destinations from a `sapnwrfc.ini` file (standard SAP NW RFC SDK config format) in the working directory. Example:
 
 ```ini
-DEST=MY_SYSTEM
+DEST=SID
 TYPE=A
 ASHOST=sap.example.com
 SYSNR=00
@@ -55,12 +68,20 @@ LANG=EN
 Pass the SAP destination name via the `SAP_DEST` environment variable or as the first CLI argument:
 
 ```bash
-SAP_DEST=MY_SYSTEM ./gorfc-mcp-server
+SAP_DEST=SID ./gorfc-mcp-server
 ```
 
 ```bash
-./gorfc-mcp-server MY_SYSTEM
+./gorfc-mcp-server SID
 ```
+The SID or System Id  is the unique, three-character alphanumeric identifier that serves as the "name" for a specific SAP system installation as described in your `sapnwrfc.ini` configuration file. For example:
+
+| SID | Description |
+| :--- | :--- |
+| `DEV` | Development and configuration system |
+| `QAS` | Quality Assurance and testing system |
+| `PRD` | Production (live) environment |
+
 
 Logs are written to stderr with a `[gorfc-mcp]` prefix.
 
@@ -75,7 +96,7 @@ Add to your Claude Desktop config (`claude_desktop_config.json`):
   "mcpServers": {
     "sap": {
       "command": "/path/to/gorfc-mcp-server",
-      "args": ["MY_SYSTEM"],
+      "args": ["SID"],
       "env": {
         "LD_LIBRARY_PATH": "/usr/local/sap/nwrfcsdk/lib"
       }
@@ -89,60 +110,112 @@ Add to your Claude Desktop config (`claude_desktop_config.json`):
 Add via the CLI:
 
 ```bash
-claude mcp add sap /path/to/gorfc-mcp-server -- MY_SYSTEM
+claude mcp add sap /path/to/gorfc-mcp-server -- SID
 ```
 
 ## Tools
+Model Context Protocol (MCP) tools designed for SAP connectivity, metadata inspection, and table discovery via the NetWeaver RFC SDK.
+
+---
+
+## Tool Overview
 
 | Tool | Description |
-|------|-------------|
-| `rfc_ping` | Verify SAP connectivity |
-| `rfc_connection_info` | Get connection attributes and NW RFC SDK version |
-| `rfc_describe` | Get function module metadata (parameters, types, directions) |
-| `rfc_call` | Invoke an RFC function module with parameters |
-| `metrics_get` | Return call statistics and performance metrics |
+| :--- | :--- |
+| `rfc_ping` | Verify SAP connectivity. |
+| `rfc_connection_info` | Get connection attributes and NW RFC SDK version. |
+| `rfc_describe` | Get function module metadata (parameters, types, directions). |
+| `rfc_call` | Invoke an RFC function module with parameters. |
+| `get_table_metadata` | Retrieve field details (types, length, domain) for a table. |
+| `get_table_relations` | Retrieve foreign-key relationships and cardinalities. |
+| `search_sap_tables` | Search for tables by description/business term. |
+| `metrics_get` | Return call statistics and performance metrics. |
+
+---
+
+## SAP Connectivity Tools
 
 ### rfc_ping
-
-Pings the connected SAP system to verify connectivity. Takes no parameters.
+Pings the connected SAP system to verify connectivity. 
+* **Parameters:** None.
 
 ### rfc_connection_info
-
-Returns connection attributes (system ID, client, host, etc.) and the SAP NW RFC SDK version. Takes no parameters.
+Returns connection attributes such as System ID, Client, Host, and the SAP NW RFC SDK version. 
+* **Parameters:** None.
 
 ### rfc_describe
-
-Returns the full metadata of an RFC function module, including all parameters with their types and directions.
+Returns the full metadata of an RFC function module. Use this to understand the interface before calling.
 
 | Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `function_name` | string | yes | Name of the RFC function module (e.g. `STFC_CONNECTION`) |
+| :--- | :--- | :--- | :--- |
+| `function_name` | string | **Yes** | Name of the RFC (e.g. `STFC_CONNECTION`) |
 
 ### rfc_call
-
-Invokes an RFC function module with the given parameters and returns the result. Parameter names are case-insensitive. Use `rfc_describe` first to understand the expected parameter types.
+Invokes an RFC function module with the given parameters and returns the result. 
 
 | Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `function_name` | string | yes | Name of the RFC function module to call |
-| `parameters` | object | no | Input parameters for the function call |
+| :--- | :--- | :--- | :--- |
+| `function_name` | string | **Yes** | Name of the RFC function module to call |
+| `parameters` | object | No | Input parameters for the function call |
 
-Parameter value type mapping:
+#### Parameter Value Type Mapping
 
-| ABAP Type | JSON Value |
-|-----------|------------|
-| INT, INT1, INT2, INT8 | number |
-| FLOAT, BCD, DECF | number |
-| CHAR, STRING, NUM | string |
-| DATE | string (`YYYYMMDD`) |
-| TIME | string (`HHMMSS`) |
-| BYTE, XSTRING | string (base64-encoded) |
-| STRUCTURE | object |
-| TABLE | array of objects |
+| ABAP Type | JSON Value | Format / Note |
+| :--- | :--- | :--- |
+| `INT`, `INT1`, `INT2`, `INT8` | number | Standard integer |
+| `FLOAT`, `BCD`, `DECF` | number | Floating point or decimal |
+| `CHAR`, `STRING`, `NUM` | string | Textual data |
+| `DATE` | string | YYYYMMDD |
+| `TIME` | string | HHMMSS |
+| `BYTE`, `XSTRING` | string | base64-encoded |
+| `STRUCTURE` | object | Key-value pairs |
+| `TABLE` | array | Array of objects |
+
+---
+
+## Data Dictionary (DDIC) Tools
+
+### get_table_metadata
+**SAP Function module:** `DDIF_FIELDINFO_GET`  
+Returns the fields of a given SAP table including field name, ABAP type, length, domain, and short description.
+
+| Parameter | Type | Required | Default | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `table_name` | string | **Yes** | - | The SAP table name (e.g. `SFLIGHT`) |
+| `language` | string | No | `D` | Language for text/descriptions |
+
+### get_table_relations
+**SAP Function module:** `FAPI_GET_FOREIGN_KEY_RELATIONS`  
+Retrieves foreign-key relationships for the specified table, including referenced check tables and cardinalities.
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `table_name` | string | **Yes** | The SAP table name |
+
+### search_sap_tables
+**SAP Function module:** `RFC_READ_TABLE` (targeting `DD02T`)  
+Performs a LIKE-style search over table short texts to find tables by description.
+
+| Parameter | Type | Required | Default | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `search_term` | string | **Yes** | - | The text to search for (LIKE semantics) |
+| `language` | string | No | `D` | Language for search |
+| `max_results` | integer | No | `100` | Maximum results to return |
+
+---
+
+## Additional Helper Functions
+
+* **`sanitizeABAPString`**: Escapes single-quotes and other characters for safely embedding user strings into ABAP `WHERE` clauses or `RFC_READ_TABLE` filters.
+* **`parseReadTableResult`**: Parses the legacy `DATA`/`WA` row format from `RFC_READ_TABLE` into a structured array of maps (`[]map[string]string`) keyed by column name.
+
+---
+
+## Monitoring
 
 ### metrics_get
-
-Returns in-memory call statistics: total/successful/failed call counts, total and average duration, and per-function call counts. Takes no parameters.
+Returns in-memory call statistics: total/successful/failed call counts, total and average duration, and per-function call counts.
+* **Parameters:** None.
 
 ## Architecture
 

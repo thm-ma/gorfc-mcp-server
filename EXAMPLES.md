@@ -22,6 +22,26 @@ These prompts assume the gorfc-mcp-server is configured as an MCP server in Clau
 
 > Call BAPI_USER_GET_DETAIL for username MARCONTH and show me the user's address and role assignments.
 
+## Table Discovery & Metadata
+
+> What fields are in the SFLIGHT table? Show me the field names, types, lengths, and descriptions.
+
+> Get the metadata for table MARA (materials). List all fields and explain what each one contains.
+
+> Show me the structure of table VBAK (sales order headers) — I need to understand which fields are key fields and their data types.
+
+> Show me all the foreign key relationships in the SFLIGHT table — what tables does it reference?
+
+> What tables reference the MARA table? Tell me which tables have foreign keys pointing to it.
+
+> Find all tables related to "materials" — search for tables with descriptions containing that term.
+
+> Search for SAP tables related to "purchase orders" and show me the top 10 results with their descriptions.
+
+> I'm building a query involving employees. Search for tables related to "employee" or "personnel" and show me what's available.
+
+> Find tables that might contain information about "invoices" and show me the matching table names and descriptions.
+
 ## Reading SAP Tables
 
 > Use RFC_READ_TABLE to read the first 10 entries from table USR02 (user master records), returning fields BNAME, TRDAT, and LTIME.
