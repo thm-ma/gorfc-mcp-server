@@ -3,8 +3,8 @@ module github.com/THM-MA/mcp
 go 1.24
 
 require (
-	github.com/THM-MA/gorfc v0.0.1-0.20260206215354-60f7b20dff27
 	github.com/modelcontextprotocol/go-sdk v1.2.0
+	github.com/thm-ma/gorfc v1.0.0
 )
 
 require (
